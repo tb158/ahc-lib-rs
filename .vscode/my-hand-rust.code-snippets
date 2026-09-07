@@ -1,0 +1,963 @@
+{
+    "DFS Template": {
+        "scope": "rust",
+        "prefix": "DFS with Vec",
+        "body": [
+            "let mut 探索 = vec![${1:0}];",
+            "let mut 到達済 = FxHashSet$2::from_iter([${1:0}]);",
+            "while let Some(点) = 探索.pop() {",
+            "    for &点 in &グラフ[点] {",
+            "        if 到達済.insert(点){",
+            "            探索.push(点);",
+            "        }",
+            "    }",
+            "}"
+        ],
+        "description": "深さ優先探索の基本構造"
+    },
+    "BFS Template": {
+        "scope": "rust",
+        "prefix": "BFS",
+        "body": [
+            "let mut 探索 = VecDeque$1::from([${2:0}]);",
+            "let mut 到達済 = FxHashSet$3::from_iter([${2:0}]);",
+            "while let Some(点) = 探索.pop_front() {",
+            "    for &点 in &グラフ[点] {",
+            "        if 到達済.insert(点){",
+            "            探索.push_back(点);",
+            "        }",
+            "    }",
+            "}"
+        ],
+        "description": "幅優先探索の基本構造"
+    },
+    "DFS Stack Recursive Style Path": {
+        "scope": "rust",
+        "prefix": "DFS(再帰コールスタック自前。経路復元など)",
+        "body": [
+            "let 始点 = ${1:0};",
+            "let 終了 = ${2:n - 1};",
+            "let mut 訪問済 = vec![false; ${3:n}];",
+            "let mut 探索 = vec![(始点, 0usize)];",
+            "訪問済[始点] = true;",
+            "while let Some((今, idx)) = 探索.last_mut() {",
+            "    if *今 == 終了 {",
+            "        break;",
+            "    }",
+            "",
+            "    if let Some(&次) = ${4:グラフ}[*今].get(*idx) {",
+            "        *idx += 1;",
+            "        if !訪問済[次] {",
+            "            訪問済[次] = true;",
+            "            探索.push((次, 0));",
+            "        }",
+            "    } else {",
+            "        探索.pop();",
+            "    }",
+            "}",
+            "$0"
+        ],
+        "description": "再帰DFSを明示スタックで再現し、到達時に経路を保持"
+    },
+    "Bit Brute Force": {
+        "scope": "rust",
+        "prefix": "全探索(2通り)",
+        "body": [
+            "// nは63以下であること",
+            "for パラメータ in 0..1usize << n {",
+            "    $1",
+            "    for j in 0..n {",
+            "        if (パラメータ >> j) & 1 == 0 {",
+            "            $2",
+            "        } else {",
+            "            $3",
+            "        }",
+            "    }",
+            "}"
+        ],
+        "description": "2通りの分岐がn回ある時の全探索"
+    },
+    "N-ary Brute Force": {
+        "scope": "rust",
+        "prefix": "全探索(3通り)",
+        "body": [
+            "// オーバーフロー注意",
+            "for i in 0..3usize.pow(n as u32) {",
+            "    let mut パラメータ = i;",
+            "    $1",
+            "    for _ in 0..n {",
+            "        match パラメータ % 3 {",
+            "            0 => {",
+            "                $2",
+            "            }",
+            "            1 => {",
+            "                $3",
+            "            }",
+            "            2 => {",
+            "                $4",
+            "            }",
+            "            _ => (),",
+            "        }",
+            "        パラメータ /= 3;",
+            "    }",
+            "}"
+        ],
+        "description": "3通りの分岐がn回ある時の全探索"
+    },
+    "Print Answer": {
+        "scope": "rust",
+        "prefix": "ans",
+        "body": [
+            "let 解答 = $1;",
+            "println!(\"{解答}\");"
+        ],
+        "description": "解答の変数定義と標準出力"
+    },
+    "Print Answer_YesNo": {
+        "scope": "rust",
+        "prefix": "ans_yesno",
+        "body": [
+            "let 解答 = if $1 {\"Yes\"} else {\"No\"};",
+            "println!(\"{解答}\");"
+        ],
+        "description": "解答の変数定義と標準出力"
+    },
+    "Answer Variable with Print": {
+        "scope": "rust",
+        "prefix": "ans_mut",
+        "body": [
+            "let mut 解答 = $1;",
+            "$2",
+            "",
+            "println!(\"{解答}\");"
+        ],
+        "description": "解答用変数の宣言と最終出力"
+    },
+    "Grid Adjacent Mask 4": {
+        "scope": "rust",
+        "prefix": "dxdy(4方向)",
+        "body": [
+            "for (dx, dy) in [(1, 0), (0, 1), (!0, 0), (0, !0)] {",
+            "    let nx = x.wrapping_add(dx);",
+            "    let ny = y.wrapping_add(dy);",
+            "    if nx < ${1:h} && ny < ${2:w} ${3} {",
+            "        $4",
+            "    }",
+            "}"
+        ],
+        "description": "境界チェック付きグリッド4近傍探索"
+    },
+    "Grid Adjacent Mask 8": {
+        "scope": "rust",
+        "prefix": "dxdy(8方向)",
+        "body": [
+            "for (dx, dy) in [(1, 0), (0, 1), (!0, 0), (0, !0), (1, 1), (1, !0), (!0, 1), (!0, !0)] {",
+            "    let nx = x.wrapping_add(dx);",
+            "    let ny = y.wrapping_add(dy);",
+            "    if nx < ${1:h} && ny < ${2:w} ${3} {",
+            "        $4",
+            "    }",
+            "}"
+        ],
+        "description": "境界チェック付きグリッド8近傍探索"
+    },
+    "Grid Diagonal 4": {
+        "scope": "rust",
+        "prefix": "dxdy(斜め4方向)",
+        "body": [
+            "for (dx, dy) in [(1, 1), (1, !0), (!0, 1), (!0, !0)] {",
+            "    let nx = x.wrapping_add(dx);",
+            "    let ny = y.wrapping_add(dy);",
+            "    if nx < ${1:h} && ny < ${2:w} ${3} {",
+            "        $4",
+            "    }",
+            "}"
+        ],
+        "description": "境界チェック付き斜め4方向探索"
+    },
+    "Grid Knight Move": {
+        "scope": "rust",
+        "prefix": "dxdy(ナイト)",
+        "body": [
+            "for (dx, dy) in [(1, 2), (2, 1), (1, !1), (2, !0), (!0, 2), (!1, 1), (!0, !1), (!1, !0)] {",
+            "    let nx = x.wrapping_add(dx);",
+            "    let ny = y.wrapping_add(dy);",
+            "    if nx < ${1:h} && ny < ${2:w} ${3} {",
+            "        $4",
+            "    }",
+            "}"
+        ],
+        "description": "境界チェック付きナイト移動"
+    },
+    "Grid 3D Adjacent 6": {
+        "scope": "rust",
+        "prefix": "dxdydz(6方向)",
+        "body": [
+            "for (dx, dy, dz) in [(1, 0, 0), (!0, 0, 0), (0, 1, 0), (0, !0, 0), (0, 0, 1), (0, 0, !0)] {",
+            "    let nx = x.wrapping_add(dx);",
+            "    let ny = y.wrapping_add(dy);",
+            "    let nz = z.wrapping_add(dz);",
+            "    if nx < ${1:h} && ny < ${2:w} && nz < ${3:d} ${4} {",
+            "        $5",
+            "    }",
+            "}"
+        ],
+        "description": "境界チェック付き3次元6近傍探索"
+    },
+    "二分探索": {
+        "prefix": "二分探索",
+        "body": [
+            "// 常に[left, right)に探索対象を含める",
+            "let mut left = ${1:0};",
+            "let mut right = ${2:n};",
+            "",
+            "while (left..right).count() > 1 {",
+            "    let mid = (left + right) / 2;",
+            "",
+            "    $3",
+            "",
+            "    if ${4:true} {",
+            "        left = mid;",
+            "    } else {",
+            "        right = mid;",
+            "    }",
+            "}"
+        ]
+    },
+    "二分探索: 条件を満たす最初の要素": {
+        "prefix": "二分探索_条件を満たす最初の要素_lowerbound",
+        "body": [
+            "// 条件満たさない→満たすでソートしておく",
+            "// 配列空も含め、Optionで取得",
+            "let ${1:条件を満たす最初の要素} = ${2:a}.get(${2:a}.partition_point(|&${3:要素}| !${4:条件}));",
+            "",
+        ],
+        "description": "条件を満たさない最初の要素（右側）を安全に取得します"
+    },
+    "大小比較": {
+        "scope": "rust",
+        "prefix": "Ordering",
+        "body": [
+            "use std::cmp::Ordering::{Less, Equal, Greater};",
+            "",
+        ],
+        "description": "Orderingのenumのインポート"
+    },
+    "MapMonoid Template": {
+        "prefix": "遅延セグ木_MapMonoid実装_MaxUpdate",
+        "body": [
+            "use ac_library::*;",
+            "",
+            "struct ${2:MaxUpdate};",
+            "",
+            "type Val = ${1:usize}; // Val: Copy + Ord + BoundedBelow",
+            "",
+            "impl MapMonoid for ${2:MaxUpdate} {",
+            "    type M = ${3:Max}<Val>;",
+            "    type F = Option<Val>;",
+            "",
+            "    fn identity_map() -> Self::F {",
+            "        None",
+            "    }",
+            "",
+            "    fn mapping(&f: &Self::F, &x: &<Self::M as Monoid>::S) -> <Self::M as Monoid>::S {",
+            "        ${4:f.unwrap_or(x)}",
+            "    }",
+            "",
+            "    fn composition(&f: &Self::F, &g: &Self::F) -> Self::F {",
+            "        // fの方が新しい操作",
+            "        ${5:f.or(g)}",
+            "    }",
+            "}",
+            "",
+        ],
+        "description": "LazySegtree MapMonoid template"
+    },
+    "MapMonoid Template Len Data": {
+        "prefix": "遅延セグ木_Monoid,MapMonoid実装_SumUpdateLen",
+        "body": [
+            "use ac_library::*;",
+            "",
+            "struct ${2:SumUpdate};",
+            "struct ${3:SumLen};",
+            "",
+            "type Val = (${1:usize}, usize); // (値, 区間長)",
+            "type FVal = ${1:usize};",
+            "",
+            "impl Monoid for ${3:SumLen} {",
+            "    type S = Val;",
+            "",
+            "    fn identity() -> Self::S {",
+            "        (0, 0)",
+            "    }",
+            "",
+            "    fn binary_operation(a: &Self::S, b: &Self::S) -> Self::S {",
+            "        (a.0 + b.0, a.1 + b.1)",
+            "    }",
+            "}",
+            "",
+            "impl MapMonoid for ${2:SumUpdate} {",
+            "    type M = ${3:SumLen};",
+            "    type F = Option<FVal>;",
+            "",
+            "    fn identity_map() -> Self::F {",
+            "        None",
+            "    }",
+            "",
+            "    fn mapping(&f: &Self::F, &x: &<Self::M as Monoid>::S) -> <Self::M as Monoid>::S {",
+            "        match f {",
+            "            Some(v) => (${4:*v * x.1}, x.1),",
+            "            None => x,",
+            "        }",
+            "    }",
+            "",
+            "    fn composition(&f: &Self::F, &g: &Self::F) -> Self::F {",
+            "        // fの方が新しい操作",
+            "        f.or(g)",
+            "    }",
+            "}",
+            ""
+        ],
+        "description": "LazySegtree MapMonoid template with segment length in data"
+    },
+    "LazySegtree": {
+        "prefix": "遅延セグ木",
+        "scope": "rust",
+        "body": [
+            "let mut ${1:遅延セグ木} = LazySegtree::<${2:MaxUpdate}>::new(${3:n});",
+            "for ${4} in ${5} {",
+            "    ${6}",
+            "}",
+            ""
+        ],
+        "description": "LazySegtreeの初期化とループ処理"
+    },
+    "Grid Loop (Read Only)": {
+        "prefix": "enumerateによるindex展開(forループ)、mut化可能",
+        "body": [
+            "for (${1:i}, ${2:row}) in ${3:a}.iter${4}().enumerate()${5} {",
+            "    $6",
+            "}",
+            "$0"
+        ],
+        "description": "インデックス付きで走査。iterの後へ_mut、enumerateの後へ.rev()などを追加可能"
+    },
+    "Ndarray 2D Indexed Iter": {
+        "prefix": "indexed_iterによるindex展開(forループ)、mut化可能",
+        "body": [
+            "for ((${1:i}, ${2:j}), ${3:dp}) in ${4:dp}.indexed_iter${5}() {",
+            "    $0",
+            "}"
+        ],
+        "description": "ndarrayのArray2をindexed_iterで走査。indexed_iterの後へ_mutを追加すると値を書き換え可能(その場合は${3:v}を&mutで受ける必要あり)"
+    },
+    "包除原理": {
+        "scope": "rust",
+        "prefix": "包除原理",
+        "body": [
+            "// 各制約を辺集合のビットマスク (u64 等) で持つ",
+            "let mut ${1:ans} = 0i64;",
+            "for ${2:bit} in 0..(1 << ${3:m}) {",
+            "    let mut ${4:eset} = 0u64;",
+            "    for i in 0..${3:m} {",
+            "        if (${2:bit} >> i) & 1 == 1 {",
+            "            ${4:eset} |= ${5:cons}[i];",
+            "        }",
+            "    }",
+            "    let ${6:white} = ${4:eset}.count_ones() as usize;",
+            "    let ${7:num} = 1i64 << (${8:n} - 1 - ${6:white});",
+            "    if ${2:bit}.count_ones() % 2 == 0 {",
+            "        ${1:ans} += ${7:num};",
+            "    } else {",
+            "        ${1:ans} -= ${7:num};",
+            "    }",
+            "}",
+            "$0"
+        ],
+        "description": "M個の制約(辺集合ビットマスク)の包除原理。2^(N-1-white) の数え上げ"
+    },
+    "二次元グリッド_index展開(for文)_iproduct": {
+        "prefix": "グリッド2D_index展開(for文)_iproduct",
+        "body": [
+            "for (${1:i}, ${2:j}) in iproduct!$3(0..${4:h}, 0..${5:w}) {",
+            "    $0",
+            "}",
+            "",
+        ],
+        "description": "grid loop over 0..h and 0..w"
+    },
+    "尺取り_count条件_wrapping": {
+        "prefix": "尺取り法でcount",
+        "body": [
+            "let count_${1:条件名} = |${3:引数}| {",
+            "    let mut count = 0;",
+            "    let mut r = 0;",
+            "    // 目的関数はl..rに対応させ、常に連動させる",
+            "    // rはr<lも許容して、そのせいで負になるならwrapping_add,subを利用する",
+            "    let mut ${4:目的関数} = ${5:0};",
+            "",
+            "    for l in 0..${6:a}.len() {",
+            "        // rを目的関数に反映→空区間はデフォルト値の責任、有区間は1要素目だろうが全要素だろうが評価がrに反映される",
+            "        // r<lはcount計算前に無条件でrをインクリメントする",
+            "        while r < ${6:a}.len() && (r < l || ${7:目的関数.wrapping_add(a[r])}${2:条件}) {",
+            "            // rの変化に連動",
+            "            ${4:目的関数} = ${7:目的関数.wrapping_add(a[r])};",
+            "            r += 1;",
+            "        }",
+            "        count += r - l;",
+            "        // lの変化に連動",
+            "        ${2:目的関数} = ${8:目的関数.wrapping_sub(a[l])};",
+            "    }",
+            "    count",
+            "};",
+            "",
+        ],
+        "description": "尺取りで条件を満たす区間数を数える"
+    },
+    "Closure With Two Args": {
+        "prefix": "¥",
+        "body": [
+            "|${1:()}| ${3}"
+        ],
+        "description": "closure with two tuple args"
+    },
+    "debug cfg block": {
+        "prefix": "dbg",
+        "body": [
+            "#[cfg(debug_assertions)]",
+            "{",
+            "    dbg!($1);",
+            "}",
+            "$0"
+        ],
+        "description": "debug_assertions cfg dbg block"
+    },
+    "count": {
+        "prefix": "count",
+        "body": [
+            "let mut count = 0usize;",
+            "$0"
+        ],
+        "description": "countを0で初期化(型指定しないとi32になってオーバーフローし得る)"
+    },
+    "無向グラフ": {
+        "scope": "rust",
+        "prefix": "グラフ",
+        "body": [
+            "let mut ${1:グラフ} = vec![vec![]; ${2:n}];",
+            "for (${3:a}, ${4:b}) in ${5:ab} {",
+            "    ${1:グラフ}[${3:a}].push(${4:b});",
+            "    ${1:グラフ}[${4:b}].push(${3:a});",
+            "}",
+            "$0"
+        ],
+        "description": "辺列から無向グラフの隣接リストを構築"
+    },
+    "無向グラフ_重み付き": {
+        "scope": "rust",
+        "prefix": "グラフ_重み",
+        "body": [
+            "let mut ${1:グラフ} = vec![vec![]; ${2:n}];",
+            "for (${3:a}, ${4:b}, ${5:c}) in ${6:abc} {",
+            "    ${1:グラフ}[${3:a}].push((${4:b}, ${5:c}));",
+            "    ${1:グラフ}[${4:b}].push((${3:a}, ${5:c}));",
+            "}",
+            "$0"
+        ],
+        "description": "辺列(from,to,cost)から重み付き無向グラフの隣接リストを構築"
+    },
+    "Joinして解答を出力": {
+        "scope": "rust",
+        "prefix": "ans_join",
+        "body": [
+            "let 解答 = ${1:a}.iter().join$3(\"${2: }\");",
+            "println!(\"{解答}\");",
+            "$0"
+        ],
+        "description": "要素を指定した区切り文字で連結して出力"
+    },
+    "最小ヒープ": {
+        "scope": "rust",
+        "prefix": "最小ヒープ_BynaryHeap",
+        "body": [
+            "use std::cmp::Reverse as R;",
+            "",
+            "let mut ${1:最小ヒープ} = BinaryHeap${2}::new();",
+            "$0"
+        ],
+        "description": "ReverseをRとして利用する最小ヒープを初期化"
+    },
+    "グリッド座標と一次元indexの相互変換": {
+        "scope": "rust",
+        "prefix": "座標_1D変換_for_dsu",
+        "body": [
+            "let index = |x: usize, y: usize| x * ${1:w} + y;",
+            "let 座標 = |index: usize| (index / ${1:w}, index % ${1:w});",
+            "$0"
+        ],
+        "description": "グリッド座標とDSUなどで使う一次元indexを相互変換"
+    },
+    "2つの配列をzipしてforループ": {
+        "scope": "rust",
+        "prefix": "for_zip",
+        "body": [
+            "for (${1:a}, ${2:b}) in ${3:a}.iter${4}().zip(${5:b}.iter${6}()) {",
+            "    $7",
+            "}",
+            "$0"
+        ],
+        "description": "2つの配列をzipして並行走査。必要に応じてiterの後へ_mutを追加"
+    },
+    "ModInt998244353をMintとしてimport": {
+        "scope": "rust",
+        "prefix": "Mint998",
+        "body": [
+            "use ac_library::ModInt${1:998244353} as Mint;",
+            "",
+            "$0"
+        ],
+        "description": "ModInt998244353を短い型名Mintで利用"
+    },
+    "二次元Vec右辺": {
+        "scope": "rust",
+        "prefix": "vec_2d",
+        "body": [
+            "vec![vec![${1:value}; ${2:w}]; ${3:h}]",
+            "$0"
+        ],
+        "description": "二次元Vecを生成する右辺"
+    },
+    "三次元Vec右辺": {
+        "scope": "rust",
+        "prefix": "vec_3d",
+        "body": [
+            "vec![vec![vec![${1:value}; ${2:d}]; ${3:w}]; ${4:h}]",
+            "$0"
+        ],
+        "description": "三次元Vecを生成する右辺"
+    },
+    "英小文字ごとの次の出現位置を前計算": {
+        "scope": "rust",
+        "prefix": "英小文字_next関数_次出現位置",
+        "body": [
+            "let mut next = vec![vec![${1:s}.len(); 26]; ${1:s}.len() + 1];",
+            "for i in (0..${1:s}.len()).rev() {",
+            "    next[i] = next[i + 1].clone();",
+            "    next[i][${1:s}[i]] = i;",
+            "}",
+            "$0"
+        ],
+        "description": "英小文字の数字配列について各位置以降の次の出現位置を前計算"
+    },
+    "tuple_combinationsで区間端を選ぶループ": {
+        "scope": "rust",
+        "prefix": "区間ループ_tuple_combinations",
+        "body": [
+            "for (${1:l}, ${2:r}) in (${3:0..=n}).tuple_combinations() {",
+            "    $4",
+            "}",
+            "$0"
+        ],
+        "description": "itertools::tuple_combinationsで範囲から2点を選ぶループ"
+    },
+    "popしながら反復": {
+        "scope": "rust",
+        "prefix": "while_let_pop",
+        "body": [
+            "while let Some(${2:value}) = ${1:探索}.pop() {",
+            "    $3",
+            "}",
+            "$0"
+        ],
+        "description": "コレクションからpopできる間、取り出した値を処理"
+    },
+    "ダイクストラ": {
+        "prefix": "ダイクストラ",
+        "description": "単一始点で最短距離を求める。隣接リストを関数として渡し、.get(&終点)が(終点のprev, cost)となるHashMapを返す",
+        "body": [
+            "let ${1:点_to_prev_cost} = dijkstra${3:_all}(&${2:0}, |&点| グラフ[点].iter().copied());",
+            "",
+        ],
+    },
+    "ワーシャルフロイド": {
+        "prefix": "ワーシャルフロイド_全点対最短距離",
+        "description": "全点対最短距離 O(V^3)。負辺可・負閉路ありはunwrap時panic。最短距離[&(点[i], 点[j])]がi→j、未到達はi64::MAX。Undirected→Directedで有向に",
+        "body": [
+            "use petgraph::prelude::*;",
+            "use petgraph::algo::floyd_warshall;",
+            "",
+            "let mut ${1:グラフ} = Graph::<(), i64, ${2:Undirected}>::with_capacity(${3:n}, 0);",
+            "let ${4:点} = (0..${3:n}).map(|_| ${1:グラフ}.add_node(())).collect::<Vec<_>>();",
+            "for (${5:from}, ${6:to}, ${7:cost}) in ${8:辺} {",
+            "    ${1:グラフ}.add_edge(${4:点}[${5:from}], ${4:点}[${6:to}], ${7:cost});",
+            "}",
+            "let ${9:最短距離} = floyd_warshall(&${1:グラフ}, |e| *e.weight()).unwrap();",
+            "",
+        ],
+    },
+    "ワーシャルフロイド_経路復元": {
+        "prefix": "ワーシャルフロイド_経路復元付き",
+        "description": "全点対最短距離+経路復元 O(V^3)。prev[i][j]はi→j最短路でjの直前頂点(Option<usize>)、jからprev[i]を辿りp==現在で停止し逆順に経路。最短距離[&(点[i], 点[j])]、未到達はi64::MAX",
+        "body": [
+            "use petgraph::prelude::*;",
+            "use petgraph::algo::floyd_warshall::floyd_warshall_path;",
+            "",
+            "let mut ${1:グラフ} = Graph::<(), i64, ${2:Undirected}>::with_capacity(${3:n}, 0);",
+            "let ${4:点} = (0..${3:n}).map(|_| ${1:グラフ}.add_node(())).collect::<Vec<_>>();",
+            "for (${5:from}, ${6:to}, ${7:cost}) in ${8:辺} {",
+            "    ${1:グラフ}.add_edge(${4:点}[${5:from}], ${4:点}[${6:to}], ${7:cost});",
+            "}",
+            "let (${9:最短距離}, ${10:prev}) = floyd_warshall_path(&${1:グラフ}, |e| *e.weight()).unwrap();",
+            "",
+        ],
+    },
+    "bfs_最短手数_経路復元": {
+        "prefix": "bfs_最短手数_経路復元",
+        "description": "無重みグラフの最短経路(手数最小)。Some(Vec)で始点→ゴール経路(両端含む)、到達不可None。重み付きはダイクストラ",
+        "body": [
+            "let ${1:経路} = bfs$2(&${3:始点}, |&点| ${4:グラフ}[点].iter().copied(), |&点| 点 == ${5:ゴール});",
+            "",
+        ],
+    },
+    "dfs_経路発見_pathfinding": {
+        "prefix": "dfs_経路発見_pathfinding",
+        "description": "無重みグラフでゴールへの経路を1つ発見(最短ではない)。Some(Vec)で始点→ゴール、到達不可None。始点は値渡し",
+        "body": [
+            "let ${1:経路} = dfs$2(${3:始点}, |&点| ${4:グラフ}[点].iter().copied(), |&点| 点 == ${5:ゴール});",
+            "",
+        ],
+    },
+    "ダイクストラ_単一ゴール_経路とコスト": {
+        "prefix": "ダイクストラ_単一ゴール_経路とコスト",
+        "description": "重み付きグラフで始点→ゴールの最短(経路, コスト)。隣接は(隣, コスト)を返す。Some((Vec, コスト))、到達不可None。全点距離はdijkstra_all",
+        "body": [
+            "let ${1:経路_コスト} = dijkstra$2(&${3:始点}, |&点| ${4:グラフ}[点].iter().copied(), |&点| 点 == ${5:ゴール});",
+            "",
+        ],
+    },
+    "Aスター_最短経路": {
+        "prefix": "Aスター_最短経路_astar",
+        "description": "重み付きグラフのA*。隣接は(隣, コスト)、3引数目は推定残コスト(0でダイクストラ相当・過大評価不可)。Some((経路, コスト))",
+        "body": [
+            "let ${1:経路_コスト} = astar$2(&${3:始点}, |&点| ${4:グラフ}[点].iter().copied(), |&点| ${5:推定残コスト}, |&点| 点 == ${6:ゴール});",
+            "",
+        ],
+    },
+    "イェン_k本の最短経路": {
+        "prefix": "イェン_k本の最短経路_yen",
+        "description": "始点→ゴールの短い順k本の(経路, コスト)をVecで返す(単純路)。隣接は(隣, コスト)",
+        "body": [
+            "let ${1:k本の経路} = yen$2(&${3:始点}, |&点| ${4:グラフ}[点].iter().copied(), |&点| 点 == ${5:ゴール}, ${6:k});",
+            "",
+        ],
+    },
+    "経路数え上げ_count_paths": {
+        "prefix": "経路数え上げ_count_paths",
+        "description": "始点→ゴールの異なる経路数をusizeで返す(DAG前提・閉路があると無限ループ)",
+        "body": [
+            "let ${1:本数} = count_paths$2(${3:始点}, |&点| ${4:グラフ}[点].iter().copied(), |&点| 点 == ${5:ゴール});",
+            "",
+        ],
+    },
+    "強連結成分分解_SCC": {
+        "prefix": "強連結成分分解_SCC",
+        "description": "有向グラフの強連結成分をVec<Vec>で返す(各成分=頂点集合, トポロジカル順)。第1引数は全頂点",
+        "body": [
+            "let ${1:成分} = strongly_connected_components$2(&(0..${3:n}).collect::<Vec<usize>>(), |&点| ${4:グラフ}[点].iter().copied());",
+            "",
+        ],
+    },
+    "トポロジカルソート": {
+        "prefix": "トポロジカルソート_topological_sort",
+        "description": "有向グラフの位相順序をOk(Vec)で返す。閉路があるとErr(閉路上の一頂点)。第1引数は全頂点",
+        "body": [
+            "let ${1:順序} = topological_sort$2(&(0..${3:n}).collect::<Vec<usize>>(), |&点| ${4:グラフ}[点].iter().copied());",
+            "",
+        ],
+    },
+    "連結成分_無向": {
+        "prefix": "連結成分_無向_connected_components",
+        "description": "無向グラフの連結成分をVec<HashSet>で返す。隣接は対称にしておく。第1引数は全頂点",
+        "body": [
+            "let ${1:連結成分} = connected_components$2(&(0..${3:n}).collect::<Vec<usize>>(), |&点| ${4:グラフ}[点].iter().copied());",
+            "",
+        ],
+    },
+    "最小全域木_クラスカル": {
+        "prefix": "最小全域木_クラスカル_kruskal",
+        "description": "辺集合&[(u, v, コスト)]から最小全域木の辺を昇順に返すイテレータ。.collect()で回収、コスト和は.map(|(_, _, c)| c).sum()",
+        "body": [
+            "let ${1:全域木} = kruskal$2(&${3:辺}).collect::<Vec<_>>();",
+            "",
+        ],
+    },
+    "UnionFind_DSU": {
+        "prefix": "UnionFind_DSU",
+        "description": "ac-library Union-Find。merge(a, b)併合, same(a, b)同集合判定, leader(a)代表, size(a)要素数, groups()全集合",
+        "body": [
+            "let mut ${1:uf} = Dsu$2::new(${3:n});",
+            "",
+        ],
+    },
+    "フェニック木_BIT_区間和": {
+        "prefix": "フェニック木_BIT_区間和",
+        "description": "ac-library Fenwick木(0-indexed)。add(i, v)1点加算, sum(l..r)区間和, accum(r)接頭辞和。第2引数は単位元0",
+        "body": [
+            "let mut ${1:bit} = FenwickTree$2::new(${3:n}, 0i64);",
+            "",
+        ],
+    },
+    "セグ木_モノイド": {
+        "prefix": "セグ木_モノイド_Segtree",
+        "description": "ac-library Segtree。Max/Min/Additive/BitwiseXor等の既製モノイドで構築。set(i, x)更新, prod(l..r)区間積, all_prod()全体, max_right/min_left二分探索",
+        "body": [
+            "use ac_library::{Segtree, ${1:Max}};",
+            "",
+            "let mut ${2:seg} = Segtree::<${1:Max}<i64>>::from(${3:配列});",
+            "",
+        ],
+    },
+    "最大流_Dinic_MfGraph": {
+        "prefix": "最大流_Dinic_MfGraph",
+        "description": "ac-library 最大流(Dinic)。add_edge(from, to, cap)で辺追加(戻り値=辺id)、flow(s, t)で最大流量、min_cut(s)でS側カット",
+        "body": [
+            "let mut ${1:flow} = MfGraph$2::<i64>::new(${3:n});",
+            "",
+        ],
+    },
+    "最小費用流_MinCostFlow": {
+        "prefix": "最小費用流_MinCostFlow",
+        "description": "ac-library 最小費用流。add_edge(from, to, cap, cost)、flow(s, t, 流量上限)→(流せた流量, 総費用)、slope()で各流量の費用",
+        "body": [
+            "let mut ${1:mcf} = MinCostFlowGraph$2::<i64>::new(${3:n});",
+            "",
+        ],
+    },
+    "2SAT_TwoSat": {
+        "prefix": "2SAT_TwoSat",
+        "description": "ac-library 2-SAT。add_clause(i, f, j, g)で(x_i==f ∨ x_j==g)。satisfiable()で充足判定、trueならanswer()が各変数の真偽",
+        "body": [
+            "let mut ${1:two_sat} = TwoSat$2::new(${3:n});",
+            "",
+        ],
+    },
+    "畳み込み_NTT_convolution": {
+        "prefix": "畳み込み_NTT_convolution",
+        "description": "ac-library i64畳み込み(NTT)。c[k]=Σ a[i]*b[k-i]。値が998244353系の安全範囲のときに使用、ModInt版はconvolution",
+        "body": [
+            "let ${1:畳み込み} = convolution_i64$2(&${3:a}, &${4:b});",
+            "",
+        ],
+    },
+    "Zアルゴリズム": {
+        "prefix": "Zアルゴリズム_z_algorithm",
+        "description": "ac-library Z-algorithm。z[i]=SとS[i..]の最長共通接頭辞長(z[0]=|S|)。&str/Stringを渡す",
+        "body": [
+            "let ${1:z} = z_algorithm$2(&${3:s});",
+            "",
+        ],
+    },
+    "接尾辞配列_SA_LCP": {
+        "prefix": "接尾辞配列_SA_LCP",
+        "description": "ac-library 接尾辞配列(SA-IS O(n))とLCP配列(Kasai)。sa[k]=辞書順k番目の接尾辞の開始位置、lcp[k]=sa[k]とsa[k+1]の最長共通接頭辞長",
+        "body": [
+            "use ac_library::{suffix_array, lcp_array};",
+            "",
+            "let ${1:sa} = suffix_array(&${2:s});",
+            "let ${3:lcp} = lcp_array(&${2:s}, &${1:sa});",
+            "",
+        ],
+    },
+    "べき乗mod_pow_mod": {
+        "prefix": "べき乗mod_pow_mod",
+        "description": "ac-library x^n mod m を返す(戻り値u32, m:u32)",
+        "body": [
+            "let ${1:r} = pow_mod$2(${3:x}, ${4:n}, ${5:1_000_000_007});",
+            "",
+        ],
+    },
+    "逆元mod_inv_mod": {
+        "prefix": "逆元mod_inv_mod",
+        "description": "ac-library xのmod m逆元(戻り値i64, gcd(x, m)==1必須)",
+        "body": [
+            "let ${1:inv} = inv_mod$2(${3:x}, ${4:1_000_000_007});",
+            "",
+        ],
+    },
+    "中国剰余定理_crt": {
+        "prefix": "中国剰余定理_crt",
+        "description": "ac-library 中国剰余定理。x≡r[i] (mod m[i])の解を(余り, 法)で返す。解なしは(0, 0)",
+        "body": [
+            "let (${1:余り}, ${2:法}) = crt$3(&${4:r}, &${5:m});",
+            "",
+        ],
+    },
+    "floor_sum_格子点数": {
+        "prefix": "floor_sum_格子点数",
+        "description": "ac-library Σ_{i=0}^{n-1} floor((a*i+b)/m) をO(log)で。直線 y=(a*x+b)/m の下の格子点数え上げに",
+        "body": [
+            "let ${1:s} = floor_sum$2(${3:n}, ${4:m}, ${5:a}, ${6:b});",
+            "",
+        ],
+    },
+    "順列全列挙_next_permutation": {
+        "prefix": "順列全列挙_next_permutation",
+        "description": "permutohedron: ソート済み配列の全順列を辞書順で列挙(初回=現状態)。先頭でsort必須、逆順はprev_permutation",
+        "body": [
+            "${1:配列}.sort();",
+            "loop {",
+            "    ${2}",
+            "    if !${1:配列}.next_permutation$3() {",
+            "        break;",
+            "    }",
+            "}",
+            "",
+        ],
+    },
+    "組合せ列挙_combinations": {
+        "prefix": "組合せ列挙_combinations",
+        "description": "itertools: 配列からk個を選ぶ組合せをVec<&T>で列挙(元の順序を保持)",
+        "body": [
+            "for ${1:組} in ${2:配列}.iter().combinations$3(${4:k}) {",
+            "    ${5}",
+            "}",
+            "",
+        ],
+    },
+    "順列列挙_permutations": {
+        "prefix": "順列列挙_permutations",
+        "description": "itertools: 配列からk個を選ぶ順列をVec<&T>で列挙",
+        "body": [
+            "for ${1:順列} in ${2:配列}.iter().permutations$3(${4:k}) {",
+            "    ${5}",
+            "}",
+            "",
+        ],
+    },
+    "equal_range_superslice": {
+        "prefix": "二分探索_equal_range_superslice",
+        "description": "superslice: ソート済み配列でxと等しい要素のインデックス範囲Range(空ならl==r)。個数は.len()",
+        "body": [
+            "let ${1:範囲} = ${2:配列}.equal_range$3(&${4:x});",
+            "",
+        ],
+    },
+    "ベルマンフォード_負辺最短路": {
+        "prefix": "ベルマンフォード_負辺最短路",
+        "description": "petgraph 単一始点最短路(負辺可・負閉路はunwrapでpanic)。重みはf64のみ(整数は as f64、未到達=f64::INFINITY)。最短.distances[i]が始点→i、最短.predecessors[i]で経路復元",
+        "body": [
+            "use petgraph::prelude::*;",
+            "use petgraph::algo::bellman_ford;",
+            "",
+            "let mut ${1:グラフ} = Graph::<(), f64, ${2:Directed}>::with_capacity(${3:n}, 0);",
+            "let ${4:点} = (0..${3:n}).map(|_| ${1:グラフ}.add_node(())).collect::<Vec<_>>();",
+            "for (${5:from}, ${6:to}, ${7:cost}) in ${8:辺} {",
+            "    ${1:グラフ}.add_edge(${4:点}[${5:from}], ${4:点}[${6:to}], ${7:cost});",
+            "}",
+            "let ${9:最短} = bellman_ford(&${1:グラフ}, ${4:点}[${10:始点}]).unwrap();",
+            "",
+        ],
+    },
+    "多倍長整数_BigUint": {
+        "prefix": "多倍長整数_BigUint",
+        "description": "num_bigint 多倍長非負整数。+ - * / % や .pow(u32)、from(u64)/parse、to_string。符号付きはBigInt",
+        "body": [
+            "let ${1:big} = BigUint$2::from(${3:n}u64);",
+            "",
+        ],
+    },
+    "有理数_厳密分数_Rational64": {
+        "prefix": "有理数_厳密分数_Rational64",
+        "description": "num_rational 厳密な有理数(i64の分子/分母, 生成時に自動で既約化)。+ - * / と大小比較が誤差なくでき、傾き比較や厳密確率に使える。.numer()/.denom()で分子分母、Displayは\"a/b\"。桁が大きいときはBigRational",
+        "body": [
+            "let ${1:r} = Rational64$2::new(${3:分子}, ${4:分母});",
+            "",
+        ],
+    },
+    "ビット集合DP_BitSet": {
+        "prefix": "ビット集合DP_BitSet",
+        "description": "bitset_fixed 固定長ビット集合。set(i, bool)で設定、bs[i]で参照、count_ones()で立っている数。演算は参照同士で &a | &b ・ &a & &b ・ &a ^ &b、&a << k でシフト。部分和の到達可否(dp = &dp | &(&dp << w))などのビットDPを定数倍64分の1に",
+        "body": [
+            "let mut ${1:dp} = BitSet$2::new(${3:サイズ});",
+            "${1:dp}.set(0, true);",
+            "for &${4:w} in &${5:重み} {",
+            "    ${1:dp} = &${1:dp} | &(&${1:dp} << ${4:w});",
+            "}",
+            "",
+        ],
+    },
+    "偏角(度)": {
+        "prefix": "偏角クロージャ_degree",
+        "description": "",
+        "body": [
+            "let 偏角 = |x,y| {",
+            "\t(y as f64).atan2(x as f64).to_degrees()",
+            "};",
+        ],
+    },
+    "インタラクティブ問題": {
+        "prefix": "println_flush",
+        "description": "インタラクティブ問題用",
+        "body": [
+            "println!(\"$1\", $2);",
+            "stdout()$3.flush()$4.unwrap();",
+            "",
+        ],
+    },
+    "name": {
+        "prefix": "dp_next",
+        "description": "swapでdp更新,fillで初期化する想定",
+        "body": [
+            "let mut dp = $1;",
+            "let mut dp_next = $1;",
+            "",
+        ],
+    },
+    "Readable構造体": {
+        "scope": "rust",
+        "prefix": "構造体_derive_readable",
+        "description": "proconioのinput!で直接読める構造体定義",
+        "body": [
+            "#[proconio::derive_readable]",
+            "#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]",
+            "struct ${1:構造体} {",
+            "    ${2:高さ}: ${3:usize},",
+            "    ${4:幅}: ${5:usize},",
+            "}",
+            "$0"
+        ],
+    },
+    "Grid Adjacent": {
+        "scope": "rust",
+        "prefix": "nxny",
+        "body": [
+            "for (nx, ny) in [(x + 1, y), (x, y + 1), (x.wrapping_sub(1), y), (x, y.wrapping_sub(1))] {",
+            "    $1",
+            "}"
+        ],
+        "description": "グリッドの上下左右4近傍への移動"
+    },
+    "Grid Adjacent Mask": {
+        "scope": "rust",
+        "prefix": "dxdy",
+        "body": [
+            "for (dx, dy) in [(1, 0), (0, 1), (!0, 0), (0, !0)] {",
+            "    let nx = x.wrapping_add(dx);",
+            "    let ny = y.wrapping_add(dy);",
+            "    $1",
+            "}"
+        ],
+        "description": "ビット反転を利用したグリッド4近傍探索"
+    },
+    "Closure Snippet": {
+        "prefix": "クロージャ",
+        "body": [
+            "let ${1:dfs} = |${3}| {",
+            "    $4",
+            "};",
+            "${1:dfs}(${2});",
+            ""
+        ],
+        "description": "クロージャと呼び出しのテンプレート"
+    }
+}

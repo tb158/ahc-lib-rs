@@ -1,0 +1,390 @@
+{
+    "name": "${localWorkspaceFolderBasename}",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "mounts": [
+        "source=${localWorkspaceFolderBasename}-target,target=${containerWorkspaceFolder}/target,type=volume",
+        // Shared crate caches (fixed volume names -> both containers use the SAME
+        // cache, and it survives container rebuilds so crates are not re-downloaded).
+        // Only registry/git are volumes: putting all of /usr/local/cargo here would
+        // shadow the binaries installed by the Dockerfile (cargo-compete, pahcer,
+        // cargo-snippet) and Dockerfile changes would stop taking effect.
+        // NOTE: `docker volume prune` deletes these too -- do not run it as part of
+        // the weekly container recycle (~/bin/devcontainer-recycle.sh does not).
+        "source=cargo-registry,target=/usr/local/cargo/registry,type=volume",
+        "source=cargo-git,target=/usr/local/cargo/git,type=volume",
+        "source=/run/host-services/ssh-auth.sock,target=/ssh-agent,type=bind",
+        "source=${localEnv:HOME}/.gitconfig,target=/root/.gitconfig,type=bind,readonly",
+    ],
+    "remoteEnv": {
+        "SSH_AUTH_SOCK": "/ssh-agent",
+    },
+    "runArgs": [
+        "--env-file",
+        ".devcontainer/.env"
+    ],
+    "containerEnv": {
+        "WORKSPACE_FOLDER": "${containerWorkspaceFolder}",
+        // Keep Claude Code state (plans, memory, logs, auth) in the bind-mounted
+        // workspace so it survives container Restart/Rebuild. Unset falls back to
+        // /root/.claude, which is not mounted and is lost on rebuild.
+        "CLAUDE_CONFIG_DIR": "${containerWorkspaceFolder}/.claude",
+    },
+    "postCreateCommand": "entrypoint.sh",
+    "postStartCommand": "bash ${containerWorkspaceFolder}/.devcontainer/install_shell_helpers.sh",
+    // Re-run on every attach: the editor server dir is not a persisted volume.
+    // install_pahcer_ui.sh  -> reinstalls the bundled pahcer-UI .vsix
+    // install_snippets.sh   -> links .vscode/*.code-snippets into User (global)
+    //                          snippets so they work when a single contest dir
+    //                          is opened as the workspace root
+    "postAttachCommand": "bash ${containerWorkspaceFolder}/.devcontainer/install_pahcer_ui.sh; bash ${containerWorkspaceFolder}/.devcontainer/install_snippets.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "EditorConfig.EditorConfig",
+                "rust-lang.rust-analyzer",
+                // tamasfe.even-better-toml is intentionally NOT installed: its LSP
+                // grew to ~1.7GB RSS here and the resulting VM pressure got
+                // rust-analyzer OOM-killed (SIGKILL) mid-session.
+                "vadimcn.vscode-lldb",
+                "usernamehw.errorlens",
+            ],
+            // These apply to EVERY window in this container, regardless of which
+            // folder is opened as the workspace root. This is the single source
+            // of truth for editor/rust-analyzer config so that opening a single
+            // contest dir (src/contest/<c>/, the pahcer-UI workflow) behaves the
+            // same as opening the repo root.
+            //   - The repo-root .vscode/settings.json holds ONLY
+            //     rust-analyzer.linkedProjects (meaningful only when the whole
+            //     repo is open; it would error on missing paths from a contest dir).
+            //   - Snippet files (.vscode/*.code-snippets) are linked into the
+            //     User snippets dir by .devcontainer/install_snippets.sh.
+            // Changing anything here requires "Dev Containers: Rebuild Container".
+            "settings": {
+                "cursor.cpp.enable": false,
+                // cargo fmt is run manually (see CLAUDE.md); autoformat on save
+                // is off everywhere to keep diffs intentional. rust-analyzer's
+                // rustfmt also runs under a different toolchain than the RA
+                // sysroot here, so on-save formatting is extra churn.
+                "editor.formatOnSave": false,
+                "errorLens.enabledDiagnosticLevels": [
+                    "error",
+                ],
+                // === rust-analyzer: analysis toolchain ===
+                // The RA extension tracks the latest stable, so against the
+                // 1.89.0 sysroot it fails to resolve std macros (vec!/println!/
+                // write!) and gated alloc methods (Vec::push), and misdiagnoses
+                // functions whose tail expression is `write!` as E0308
+                // (expected Result<(), Error>, found ()). Point analysis at the
+                // stable sysroot to avoid this. Build/test/submit still use
+                // toolchain = "1.89.0" from compete.toml.
+                "rust-analyzer.cargo.extraEnv": {
+                    "RUSTUP_TOOLCHAIN": "stable",
+                },
+                // Separate RA/flycheck artifacts into <target-dir>/rust-analyzer.
+                // Sharing target/ with the 1.89.0 build (pahcer run / cargo
+                // compete test) causes a full rebuild on every switch plus cargo
+                // lock contention.
+                "rust-analyzer.cargo.targetDir": true,
+                // On-save check only verifies it compiles; clippy is run via
+                // `cargo clippy --bin <name>`.
+                "rust-analyzer.check.command": "check",
+                // On-save flycheck targets only the current package.
+                "rust-analyzer.check.workspace": false,
+                "rust-analyzer.cargo.buildScripts.enable": false,
+                "rust-analyzer.cachePriming.enable": false,
+                "rust-analyzer.completion.autoimport.exclude": [
+                    "std::str::Chars",
+                    "ascii::Chars",
+                    "std::str::Bytes",
+                    "std::io::Bytes",
+                    "amplify::Bytes",
+                ],
+                // PR #20193: stops rust-analyzer's shadowing warning (and thus
+                // the preview) during F2 rename.
+                "rust-analyzer.rename.showConflicts": false,
+                "rust-analyzer.completion.snippets.custom": {
+                    "Chars→String": {
+                        "postfix": "cs",
+                        "body": [
+                            "${receiver}.iter().collect::<String>()"
+                        ],
+                        "description": "Chars→String"
+                    },
+                    "alphabet_index": {
+                        "postfix": "to_alphabet_idx",
+                        "body": [
+                            "${receiver}.iter().map(|&c| (c as usize - 'a' as usize)).collect::<Vec<_>>();",
+                            "$0"
+                        ],
+                        "description": "文字配列を0-25の数値Vecに変換して再代入"
+                    },
+                    "increment": {
+                        "postfix": "++",
+                        "body": [
+                            "${receiver} += 1;",
+                            "$0"
+                        ],
+                        "description": "インクリメントと改行"
+                    },
+                    "decrement": {
+                        "postfix": "--",
+                        "body": [
+                            "${receiver} -= 1;",
+                            "$0"
+                        ],
+                        "description": "デクリメント"
+                    },
+                    "deque反転": {
+                        "postfix": "reverse()",
+                        "body": [
+                            "${receiver}.make_contiguous().reverse();",
+                            "$0"
+                        ],
+                        "description": "VecDequeを反転させる"
+                    },
+                    "rsort": {
+                        "postfix": "sort_rev()",
+                        "body": [
+                            "${receiver}.sort$1_by_key(|&${2:x}| std::cmp::Reverse(${2:x}))",
+                        ],
+                        "description": "降順にソート (stable)"
+                    },
+                    "sort_f64用": {
+                        "postfix": "sort_partial_cmp()",
+                        "body": [
+                            "${receiver}.sort$1_by(|a, b| a.total_cmp(b))",
+                        ],
+                        "description": "f64など部分的にしか順序できない(Ord未実装、partial_ord実装)型ではこれでソートする"
+                    },
+                    "累積和": {
+                        "postfix": "累積和を取る_先頭0_cumsum_変数名固定",
+                        "body": [
+                            "// [0..r)の区間和を累積和[r]で表す",
+                            "let 累積和 = std::iter::once(0)",
+                            "    .chain(${receiver}.iter().cumsum$2())",
+                            "    .collect::<Vec<_>>();",
+                            "// 開区間のみ",
+                            "let 区間和 = |範囲: std::ops::Range<usize>| {",
+                            "    累積和[範囲.end] - 累積和[範囲.start]",
+                            "};",
+                            ""
+                        ]
+                    },
+                    "二次元累積和": {
+                        "postfix": "累積和を取る_2d_先頭0_cumsum_変数名固定",
+                        "body": [
+                            "// [0..x)[0..y)の長方形領域の和を累積和[x][y]で表す",
+                            "let mut 累積和 = vec![vec![0usize; ${receiver}[0].len() + 1]; ${receiver}.len() + 1];",
+                            "for (i, j) in (0..${receiver}.len()).cartesian_product$1(0..${receiver}[0].len()) {",
+                            "    累積和[i + 1][j + 1] = 累積和[i + 1][j] + 累積和[i][j + 1] - 累積和[i][j] + ${receiver}[i][j];",
+                            "}",
+                            "// 開区間のみ",
+                            "let 長方形和 = |x範囲: std::ops::Range<usize>, y範囲: std::ops::Range<usize>| {",
+                            "    累積和[x範囲.end][y範囲.end] + 累積和[x範囲.start][y範囲.start] - 累積和[x範囲.end][y範囲.start] - 累積和[x範囲.start][y範囲.end]",
+                            "};",
+                            ""
+                        ]
+                    },
+                    "counts26": {
+                        "postfix": "counts26",
+                        "body": [
+                            "let mut cnt = [0usize; 26];",
+                            "for x in ${receiver} {",
+                            "    cnt[x] += 1;",
+                            "}",
+                            ""
+                        ]
+                    },
+                    "座標圧縮": {
+                        "postfix": "座標圧縮",
+                        "body": [
+                            "let mut ${1:座標} = ${receiver}.clone();",
+                            "${1:座標}.sort_unstable();",
+                            "${1:座標}.dedup();",
+                            "let ${2:圧縮後} = ${receiver}",
+                            "    .iter()",
+                            "    .map(|値| ${1:座標}.partition_point(|座標値| 座標値 < 値))",
+                            "    .collect::<Vec<_>>();",
+                            "$0"
+                        ],
+                        "description": "値列の座標圧縮と逆引き用の座標列を作成"
+                    },
+                    "minmax_array": {
+                        "postfix": "minmax_配列",
+                        "body": [
+                            "let (&${1:min}, &${2:max}) = ${receiver}.iter().minmax().into_option().unwrap();",
+                            "$0"
+                        ],
+                        "description": "配列・Vecのmin/maxをitertools::minmaxで取得"
+                    },
+                    "minmax_pair": {
+                        "postfix": "minmax_2値",
+                        "body": [
+                            "let (${1:min}, ${2:max}) = (${receiver}.min(${3:b}), ${receiver}.max(${3:b}));",
+                            "$0"
+                        ],
+                        "description": "2値のmin/maxを取得"
+                    },
+                    "連長圧縮": {
+                        "postfix": "連長圧縮",
+                        "body": [
+                            "// 連続する等しい要素を (連続回数, 値) にまとめる",
+                            "${1:let 連長 = }${receiver}.iter().cloned().dedup_with_count$1().collect::<Vec<_>>();",
+                            "$0"
+                        ],
+                        "description": "連長圧縮 itertools::dedup_with_count → Vec<(連続回数, 値)>。$1の位置で use itertools::Itertools; を取り込む"
+                    },
+                    "以降最小値": {
+                        "postfix": "以降最小値_min",
+                        "body": [
+                            "let mut ${receiver}_以降最小値 = vec![${2:usize::MAX}; ${receiver}.len() + 1];",
+                            "for ${3:i} in (0..${receiver}.len()).rev() {",
+                            "    ${receiver}_以降最小値[${3:i}] =",
+                            "        ${receiver}_以降最小値[${3:i} + 1].min(${receiver}[${3:i}]);",
+                            "}",
+                            "$0"
+                        ],
+                        "description": "各位置について、その位置以降の最小値を後ろから前計算"
+                    },
+                    "グリッド内の位置": {
+                        "postfix": "find_グリッド内",
+                        "body": [
+                            "let (${1:x}, ${2:y}) = ${receiver}",
+                            "    .iter()",
+                            "    .enumerate()",
+                            "    .find_map(|(x, row)| {",
+                            "        row.iter()",
+                            "            .position(|&cell| cell == ${3:'S'})",
+                            "            .map(|y| (x, y))",
+                            "    })",
+                            "    .unwrap();",
+                            "$0"
+                        ],
+                        "description": "二次元配列から指定要素を探し、その行・列インデックスを取得"
+                    },
+                    "条件を満たす要素の位置": {
+                        "postfix": "filter_index(位置)",
+                        "body": [
+                            "${receiver}",
+                            "    .iter()",
+                            "    .enumerate()",
+                            "    .filter_map(|(i, &${2:x})| (${3:条件}).then_some(i))",
+                            "    .collect::<Vec<_>>();",
+                            "$0"
+                        ],
+                        "description": "条件を満たす要素のインデックスをVecに収集"
+                    },
+                    "最小値で更新": {
+                        "postfix": "chmin",
+                        "body": [
+                            "${receiver} = ${receiver}.min(${1:value});",
+                            "$0"
+                        ],
+                        "description": "現在値を候補値との最小値で更新"
+                    },
+                    "最大値で更新": {
+                        "postfix": "chmax",
+                        "body": [
+                            "${receiver} = ${receiver}.max(${1:value});",
+                            "$0"
+                        ],
+                        "description": "現在値を候補値との最大値で更新"
+                    },
+                    "数字の文字配列を整数配列へ変換": {
+                        "postfix": "整数変換_to_digit_vec",
+                        "body": [
+                            "${receiver}",
+                            "    .iter()",
+                            "    .map(|&c| c.to_digit(10).unwrap() as usize)",
+                            "    .collect::<Vec<_>>();",
+                            "$0"
+                        ],
+                        "description": "数字の文字配列をusizeのVecへ変換"
+                    },
+                    "整数の十進桁数": {
+                        "postfix": "桁数(0も1桁)_digit",
+                        "body": [
+                            "${receiver}.checked_ilog10().unwrap_or(0) + 1;",
+                            "$0"
+                        ],
+                        "description": "0を1桁として扱い、整数の十進桁数を取得"
+                    },
+                    "各要素を可変参照で操作": {
+                        "postfix": "for_each-mut(各行操作)",
+                        "body": [
+                            "${receiver}",
+                            "    .iter_mut()",
+                            "    .for_each(|${1:row}| ${2:row.sort_unstable()});",
+                            "$0"
+                        ],
+                        "description": "各要素を可変参照で受け取り、同じ操作を適用"
+                    },
+                    "グリッド全体/一部が条件を満たすか判定": {
+                        "postfix": "all_or_any_グリッド内",
+                        "body": [
+                            "${receiver}.iter().flatten().${1|all,any|}(|&${2:c}| ${3:${2:c} == '#'})",
+                            "$0"
+                        ],
+                        "description": "二次元グリッドの全要素/いずれかが条件を満たすか判定"
+                    },
+                    "条件を満たす要素をmapするfilter_map": {
+                        "postfix": "filter_to_map",
+                        "body": [
+                            "${receiver}.filter_map(|${1:()}| (${2:条件}).then(|| ${3:変換後}))$0"
+                        ],
+                        "description": "条件を満たす要素だけを別の値へ写すfilter_map"
+                    },
+                    "Mapの値を1増やす": {
+                        "postfix": "count_map_数え上げと取得",
+                        "body": [
+                            "let count = ${receiver}.entry(${1:key}).or_default();",
+                            "*count += 1;",
+                            "$0"
+                        ],
+                        "description": "counter::Counterというデータ構造もある(0になったらkeyを消すHashMap)"
+                    },
+                    "bool配列のtrue個数を数える": {
+                        "postfix": "count_true",
+                        "body": [
+                            "${receiver}.iter().filter(|&&${2:b}| ${2:b}).count();",
+                            "$0"
+                        ],
+                        "description": "bool配列・Vec<bool>のtrueの個数を数える"
+                    },
+                    "Vec/VecDeque/Setのマージテク": {
+                        "postfix": "merge_small_to_large",
+                        "body": [
+                            "if ${receiver}.len() < ${1:b}.len() {",
+                            "    std::mem::swap$2(&mut ${receiver}, &mut ${1:b});",
+                            "}",
+                            "${receiver}.extend(${1:b});",
+                            ""
+                        ]
+                    },
+                    "スコア更新の受理判定(焼きなまし)": {
+                        "postfix": "焼きなまし_受理判定",
+                        "body": [
+                            "let 差分 = ${1:新スコア} as f64 - ${receiver} as f64;",
+                            "if 差分 >= 0.0 || rng.random::<f64>() < (差分 / ${2:温度}).exp() {",
+                            "    ${3:// accept}",
+                            "}",
+                            "$0"
+                        ],
+                        "description": "差分が改善なら受理、悪化なら exp(差分/温度) の確率で受理 (最大化)"
+                    },
+                    "経過時間で打ち切り": {
+                        "postfix": "時間内ループ",
+                        "body": [
+                            "while ${receiver}.elapsed().as_secs_f64() < ${1:1.9} {",
+                            "    $0",
+                            "}"
+                        ],
+                        "description": "std::time::Instant から経過秒で回すループ (制限時間ぎりぎりまで探索)"
+                    }
+                }
+            }
+        }
+    }
+}

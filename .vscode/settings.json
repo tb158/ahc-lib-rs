@@ -1,0 +1,23 @@
+{
+    // This file is read ONLY when the repo root is opened as the workspace.
+    // It holds just rust-analyzer.linkedProjects (the multi-project list, which
+    // would error on missing relative paths if it were loaded from a single
+    // contest dir).
+    //
+    // All other editor / rust-analyzer config lives in
+    // .devcontainer/devcontainer.json -> customizations.vscode.settings so it
+    // applies to EVERY window in the container, including when a single contest
+    // dir (src/contest/<c>/) is opened for the pahcer-UI workflow.
+    // Snippet files (.vscode/*.code-snippets) are linked into the User snippets
+    // dir by .devcontainer/install_snippets.sh for the same reason.
+    "rust-analyzer.linkedProjects": [
+        "./src/contest/ahc062/Cargo.toml",
+        "./src/contest/ahc064/Cargo.toml",
+        "./src/contest/ahc065/Cargo.toml",
+        "./src/contest/ahc066/Cargo.toml",
+        "./src/contest/ahc067/Cargo.toml",
+        "./src/contest/ahc068/Cargo.toml",
+        "./src/contest/ahc069/Cargo.toml",
+        "./src/contest/ahc070/Cargo.toml",
+    ],
+}
