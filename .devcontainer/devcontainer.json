@@ -62,7 +62,6 @@
             //     User snippets dir by .devcontainer/install_snippets.sh.
             // Changing anything here requires "Dev Containers: Rebuild Container".
             "settings": {
-                "cursor.cpp.enable": false,
                 // cargo fmt is run manually (see CLAUDE.md); autoformat on save
                 // is off everywhere to keep diffs intentional. rust-analyzer's
                 // rustfmt also runs under a different toolchain than the RA
